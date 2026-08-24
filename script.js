@@ -74,15 +74,7 @@ function showMole() {
   const next = holes[Math.floor(Math.random() * holes.length)];
   const isFake = Math.random() < currentDifficulty.fakeChance;
   next.classList.add(isFake ? 'fake' : 'active');
-  if (isFake) {
-    next.textContent = '💣';
-  } else {
-    const img = document.createElement('img');
-    img.src = 'mole.png';
-    img.alt = 'Maulwurf';
-    img.className = 'mole-img';
-    next.appendChild(img);
-  }
+  next.textContent = isFake ? '💣' : '🐹';
   activeHole = next;
 }
 
