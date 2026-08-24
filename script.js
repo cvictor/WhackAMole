@@ -1,6 +1,7 @@
 const GRID_SIZE = 9;
 const ROUND_SECONDS = 30;
 const STORAGE_KEY = 'whackamole-difficulty';
+const EXPLOSION_MS = 350;
 
 const DIFFICULTIES = [
   { label: 'Leicht', emoji: '🐢', color: '#8FE388', moleVisibleMs: 1100, fakeChance: 0.08 },
@@ -77,17 +78,47 @@ function showMole() {
   activeHole = next;
 }
 
+function explode(hole) {
+  hole.classList.add('exploding');
+  hole.textContent = '💥';
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 * i) / 8 + (Math.random() * 0.4 - 0.2);
+    const distance = 30 + Math.random() * 20;
+    const particle = document.createElement('span');
+    particle.className = 'particle';
+    particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+    particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+    hole.appendChild(particle);
+  }
+  setTimeout(() => {
+    hole.classList.remove('exploding', 'fake');
+    hole.textContent = '';
+    hole.querySelectorAll('.particle').forEach(p => p.remove());
+  }, EXPLOSION_MS);
+}
+
+function pauseSpawning() {
+  clearInterval(moleTimer);
+  setTimeout(() => {
+    if (running) moleTimer = setInterval(showMole, currentDifficulty.moleVisibleMs);
+  }, EXPLOSION_MS);
+}
+
 function whack(hole) {
   if (!running || hole !== activeHole) return;
   if (hole.classList.contains('fake')) {
     score = Math.max(0, score - 1);
+    scoreEl.textContent = score;
+    activeHole = null;
+    explode(hole);
+    pauseSpawning();
   } else {
     score += 1;
+    scoreEl.textContent = score;
+    hole.classList.remove('active');
+    hole.textContent = '';
+    activeHole = null;
   }
-  scoreEl.textContent = score;
-  hole.classList.remove('active', 'fake');
-  hole.textContent = '';
-  activeHole = null;
 }
 
 function tick() {
@@ -115,10 +146,11 @@ function endGame() {
   running = false;
   clearInterval(moleTimer);
   clearInterval(countdownTimer);
-  if (activeHole) {
-    activeHole.classList.remove('active', 'fake');
-    activeHole.textContent = '';
-  }
+  holes.forEach(h => {
+    h.classList.remove('active', 'fake', 'exploding');
+    h.textContent = '';
+    h.querySelectorAll('.particle').forEach(p => p.remove());
+  });
   resultEl.textContent = `Runde vorbei – Punkte: ${score}`;
   restartBtn.style.display = 'inline-block';
   changeDifficultyBtn.style.display = 'inline-block';
