@@ -50,8 +50,15 @@ h1 { margin-bottom: 8px; }
   transition: transform 0.08s ease;
 }
 
-.hole.active { background: #E2F068; }
+.hole.active { background: #FF9FCB; }
 .hole:active { transform: scale(0.94); }
+
+.mole-img {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  pointer-events: none;
+}
 
 .hole.exploding { animation: explode-flash 350ms ease-out; }
 
