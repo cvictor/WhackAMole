@@ -1,7 +1,16 @@
 const GRID_SIZE = 9;
 const ROUND_SECONDS = 30;
 const STORAGE_KEY = 'whackamole-difficulty';
+const HIGHSCORE_KEY = 'whackamole-highscores';
 const EXPLOSION_MS = 350;
+
+const MOCK_HIGHSCORES = [
+  { name: 'Max', score: 5 },
+  { name: 'Lea', score: 4 },
+  { name: 'Tom', score: 4 },
+  { name: 'Nina', score: 3 },
+  { name: 'Ben', score: 1 },
+];
 
 const DIFFICULTIES = [
   { label: 'Leicht', emoji: '🐢', color: '#8FE388', moleVisibleMs: 1100, fakeChance: 0.08 },
@@ -22,6 +31,11 @@ const scoreEl = document.getElementById('score');
 const timeEl = document.getElementById('time');
 const resultEl = document.getElementById('result');
 const restartBtn = document.getElementById('restart');
+const highscoreEntry = document.getElementById('highscoreEntry');
+const playerNameInput = document.getElementById('playerName');
+const saveScoreBtn = document.getElementById('saveScore');
+const highscoreTable = document.getElementById('highscoreTable');
+const highscoreBody = document.getElementById('highscoreBody');
 
 let score = 0;
 let timeLeft = ROUND_SECONDS;
@@ -129,6 +143,63 @@ function whack(hole) {
   }
 }
 
+function getStoredScores() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(HIGHSCORE_KEY));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function addHighscore(name, points) {
+  const list = getStoredScores();
+  list.push({ name, score: points });
+  localStorage.setItem(HIGHSCORE_KEY, JSON.stringify(list));
+}
+
+function renderHighscoreTable() {
+  const stored = getStoredScores();
+  const source = stored.length ? stored : MOCK_HIGHSCORES;
+  const sorted = [...source].sort((a, b) => b.score - a.score);
+
+  let rank = 0;
+  let prevScore = null;
+  const ranked = sorted.map((entry, i) => {
+    if (entry.score !== prevScore) {
+      rank = i + 1;
+      prevScore = entry.score;
+    }
+    return { rank, name: entry.name, score: entry.score };
+  });
+
+  highscoreBody.innerHTML = '';
+  ranked.slice(0, 5).forEach(entry => {
+    const row = document.createElement('tr');
+    const rankCell = document.createElement('td');
+    rankCell.textContent = entry.rank;
+    const nameCell = document.createElement('td');
+    nameCell.textContent = entry.name;
+    const scoreCell = document.createElement('td');
+    scoreCell.textContent = entry.score;
+    row.append(rankCell, nameCell, scoreCell);
+    highscoreBody.appendChild(row);
+  });
+  highscoreTable.hidden = false;
+}
+
+saveScoreBtn.addEventListener('click', () => {
+  const name = playerNameInput.value.trim();
+  if (!name) return;
+  addHighscore(name, score);
+  highscoreEntry.hidden = true;
+  renderHighscoreTable();
+});
+
+playerNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveScoreBtn.click();
+});
+
 function tick() {
   timeLeft -= 1;
   timeEl.textContent = timeLeft;
@@ -144,6 +215,9 @@ function startGame(difficulty) {
   resultEl.textContent = '';
   restartBtn.style.display = 'none';
   changeDifficultyBtn.style.display = 'none';
+  highscoreEntry.hidden = true;
+  highscoreTable.hidden = true;
+  playerNameInput.value = '';
   running = true;
   buildGrid();
   moleTimer = setInterval(showMole, currentDifficulty.moleVisibleMs);
@@ -162,6 +236,8 @@ function endGame() {
   resultEl.textContent = `Runde vorbei – Punkte: ${score}`;
   restartBtn.style.display = 'inline-block';
   changeDifficultyBtn.style.display = 'inline-block';
+  highscoreEntry.hidden = false;
+  renderHighscoreTable();
 }
 
 startBtn.addEventListener('click', () => {
